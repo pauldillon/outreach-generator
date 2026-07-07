@@ -27,6 +27,7 @@ export default function Home() {
     email_body: string;
     linkedin_message: string;
   } | null>(null);
+  const [copied, setCopied] = useState<"email" | "linkedin" | null>(null);
 
   function updateField(field: keyof FormState) {
     return (
@@ -36,8 +37,7 @@ export default function Home() {
     };
   }
 
-  async function handleGenerate(e: React.FormEvent) {
-    e.preventDefault();
+  async function generate() {
     setError(null);
     setIsGenerating(true);
 
@@ -61,8 +61,6 @@ export default function Home() {
       }
 
       setResult(data);
-      // Temporary: we'll display this properly in the next step.
-      console.log("AI result:", data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -70,10 +68,25 @@ export default function Home() {
     }
   }
 
+  function handleGenerate(e: React.FormEvent) {
+    e.preventDefault();
+    generate();
+  }
+
+  async function handleCopy(text: string, which: "email" | "linkedin") {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(which);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setError("Could not copy to clipboard.");
+    }
+  }
+
   return (
     <div className="min-h-screen w-full bg-zinc-100 px-4 py-12 dark:bg-zinc-950">
-      <main className="mx-auto w-full max-w-2xl">
-        <div className="rounded-2xl bg-white p-8 shadow-xl ring-1 ring-zinc-900/5 dark:bg-zinc-900 dark:ring-white/10 sm:p-10">
+      <main className="mx-auto w-full max-w-4xl">
+        <div className="mx-auto w-full max-w-2xl rounded-2xl bg-white p-8 shadow-xl ring-1 ring-zinc-900/5 dark:bg-zinc-900 dark:ring-white/10 sm:p-10">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
               Outreach Generator
@@ -196,6 +209,75 @@ export default function Home() {
             </button>
           </form>
         </div>
+
+        {result && (
+          <div className="mt-8">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                    Cold Email
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCopy(
+                        `Subject: ${result.email_subject}\n\n${result.email_body}`,
+                        "email"
+                      )
+                    }
+                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    {copied === "email" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+                <p className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {result.email_subject}
+                </p>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                  {result.email_body}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                    LinkedIn Message
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCopy(result.linkedin_message, "linkedin")
+                    }
+                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    {copied === "linkedin" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                  {result.linkedin_message}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                onClick={() => generate()}
+                disabled={isGenerating}
+                className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+              >
+                {isGenerating ? "Regenerating..." : "Regenerate"}
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 dark:focus:ring-offset-zinc-950"
+              >
+                Save to History
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
