@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -125,6 +126,15 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full bg-zinc-100 px-4 py-12 dark:bg-zinc-950">
       <main className="mx-auto w-full max-w-4xl">
+        <div className="mb-4 flex justify-end">
+          <Link
+            href="/history"
+            className="text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+          >
+            View History
+          </Link>
+        </div>
+
         <div className="mx-auto w-full max-w-2xl rounded-2xl bg-white p-8 shadow-xl ring-1 ring-zinc-900/5 dark:bg-zinc-900 dark:ring-white/10 sm:p-10">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
