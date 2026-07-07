@@ -1,4 +1,75 @@
+"use client";
+
+import { useState } from "react";
+
+type FormState = {
+  prospectName: string;
+  company: string;
+  role: string;
+  offer: string;
+  painPoint: string;
+};
+
+const initialForm: FormState = {
+  prospectName: "",
+  company: "",
+  role: "",
+  offer: "",
+  painPoint: "",
+};
+
 export default function Home() {
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{
+    email_subject: string;
+    email_body: string;
+    linkedin_message: string;
+  } | null>(null);
+
+  function updateField(field: keyof FormState) {
+    return (
+      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    };
+  }
+
+  async function handleGenerate(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prospect_name: form.prospectName,
+          company: form.company,
+          role: form.role,
+          offer: form.offer,
+          pain_point: form.painPoint,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Something went wrong. Please try again.");
+      }
+
+      setResult(data);
+      // Temporary: we'll display this properly in the next step.
+      console.log("AI result:", data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   return (
     <div className="min-h-screen w-full bg-zinc-100 px-4 py-12 dark:bg-zinc-950">
       <main className="mx-auto w-full max-w-2xl">
@@ -12,7 +83,7 @@ export default function Home() {
             </p>
           </div>
 
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleGenerate}>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label
@@ -25,6 +96,9 @@ export default function Home() {
                   id="prospectName"
                   name="prospectName"
                   type="text"
+                  required
+                  value={form.prospectName}
+                  onChange={updateField("prospectName")}
                   placeholder="Jane Smith"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                 />
@@ -41,6 +115,9 @@ export default function Home() {
                   id="company"
                   name="company"
                   type="text"
+                  required
+                  value={form.company}
+                  onChange={updateField("company")}
                   placeholder="Acme Inc."
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                 />
@@ -58,6 +135,9 @@ export default function Home() {
                 id="role"
                 name="role"
                 type="text"
+                required
+                value={form.role}
+                onChange={updateField("role")}
                 placeholder="VP of Marketing"
                 className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
@@ -74,6 +154,9 @@ export default function Home() {
                 id="offer"
                 name="offer"
                 rows={3}
+                required
+                value={form.offer}
+                onChange={updateField("offer")}
                 placeholder="We help B2B teams automate their sales outreach..."
                 className="w-full resize-y rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
@@ -90,16 +173,26 @@ export default function Home() {
                 id="painPoint"
                 name="painPoint"
                 rows={3}
+                required
+                value={form.painPoint}
+                onChange={updateField("painPoint")}
                 placeholder="I noticed your team is hiring SDRs, which often signals..."
                 className="w-full resize-y rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
             </div>
 
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                {error}
+              </p>
+            )}
+
             <button
-              type="button"
-              className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+              type="submit"
+              disabled={isGenerating}
+              className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus:ring-offset-zinc-900"
             >
-              Generate
+              {isGenerating ? "Generating..." : "Generate"}
             </button>
           </form>
         </div>
