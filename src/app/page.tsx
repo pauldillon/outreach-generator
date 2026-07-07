@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type FormState = {
   prospectName: string;
@@ -28,6 +29,9 @@ export default function Home() {
     linkedin_message: string;
   } | null>(null);
   const [copied, setCopied] = useState<"email" | "linkedin" | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false);
+  const [showSavedMsg, setShowSavedMsg] = useState(false);
 
   function updateField(field: keyof FormState) {
     return (
@@ -39,6 +43,8 @@ export default function Home() {
 
   async function generate() {
     setError(null);
+    setHasSaved(false);
+    setShowSavedMsg(false);
     setIsGenerating(true);
 
     try {
@@ -80,6 +86,39 @@ export default function Home() {
       setTimeout(() => setCopied(null), 2000);
     } catch {
       setError("Could not copy to clipboard.");
+    }
+  }
+
+  async function handleSave() {
+    if (!result) return;
+    setError(null);
+    setIsSaving(true);
+
+    try {
+      const { error: saveError } = await supabase.from("outreach").insert({
+        prospect_name: form.prospectName,
+        company: form.company,
+        role: form.role,
+        offer: form.offer,
+        pain_point: form.painPoint,
+        email_subject: result.email_subject,
+        email_body: result.email_body,
+        linkedin_message: result.linkedin_message,
+      });
+
+      if (saveError) {
+        throw new Error(saveError.message);
+      }
+
+      setHasSaved(true);
+      setShowSavedMsg(true);
+      setTimeout(() => setShowSavedMsg(false), 2000);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -271,9 +310,17 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 dark:focus:ring-offset-zinc-950"
+                onClick={handleSave}
+                disabled={isSaving || hasSaved}
+                className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus:ring-offset-zinc-950"
               >
-                Save to History
+                {isSaving
+                  ? "Saving..."
+                  : showSavedMsg
+                    ? "Saved!"
+                    : hasSaved
+                      ? "Saved"
+                      : "Save to History"}
               </button>
             </div>
           </div>
